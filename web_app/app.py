@@ -1,26 +1,22 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_wtf import FlaskForm
-from wtforms import TextField, BooleanField
+# from flask_wtf import FlaskForm
+# from wtforms import TextField, BooleanField
+# from utils import describe_data, bytes_to_wavfile, DataRequestForm, default_start, default_end, convert_webm_to_wav, clean_directory, recognize_speech
+
 from datetime import datetime, timedelta
-from utils import describe_data
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_cors import CORS
+from utils import *
+import os
 
 app = Flask(__name__)
+
+cors = CORS(app)
+
 app.config['SECRET_KEY'] = 'our very hard to guess secretfir'
 app.config['ENV'] = 'development'
 app.config['DEBUG'] = True
 app.config['TESTING'] = True
 
-
-default_start = str(datetime.now().year) + "-" + str(datetime.now().month) + "-" + str(datetime.now().day-2)
-default_end = str(datetime.now().year) + "-" + str(datetime.now().month) + "-" + str(datetime.now().day-1)
-
-class DataRequestForm(FlaskForm):
-    input_ticker = TextField('Ticker', default = 'TATAMOTORS.NS')
-    input_start_date = TextField('Start Date', default = default_start)
-    input_end_date = TextField('End Date', default=default_end)
-    input_interval = TextField('Interval', default='5m')
-    download = BooleanField('Download Data')
-    generate_chart = BooleanField('Generate Chart')
 
 @app.route('/')
 def index():
@@ -52,6 +48,24 @@ def data_request():
             return redirect(url_for('data_request'))
 
     return render_template('requestForm.html', default_start=default_start, default_end=default_end)
+
+
+@app.route('/recorder')
+def recorder():
+    return render_template('speechRecorder.html')
+
+
+@app.route("/audioUpload", methods=['POST'])
+def recognize_speech_audio():
+    if request.method == 'POST':
+        filename = bytes_to_wavfile(request.data)
+        infile = filename + '.webm'
+        outfile = filename + '.wav'
+        convert_webm_to_wav(infile, outfile)
+        # add wrapper over the speech recog file and add here
+        speech = recognize_speech(outfile)
+        clean_directory(infile, outfile)
+    return speech
 
 
 if __name__ == "__main__":
